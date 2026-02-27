@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../api/axios";
+import { Pencil, Eraser } from "lucide-react";
 
 const PostPage = () => {
   const { id } = useParams();
@@ -11,7 +12,6 @@ const PostPage = () => {
   useEffect(() => {
     const fetchPost = async () => {
       try {
-        // Fetch post
         const res = await api.get(`/posts/${id}`);
         setPost(res.data);
       } catch (err) {
@@ -24,10 +24,10 @@ const PostPage = () => {
 
     const fetchUser = async () => {
       try {
-        const res = await api.get("/auth/me"); // optional, will fail if not logged in
+        const res = await api.get("/auth/me");
         setCurrUser(res.data);
       } catch {
-        setCurrUser(null); // guest user
+        setCurrUser(null);
       }
     };
 
@@ -35,16 +35,40 @@ const PostPage = () => {
     fetchUser();
   }, [id]);
 
-  if (loading) return <div className="text-center py-20">Loading...</div>;
-  if (!post) return <div className="text-center py-20">Post not found</div>;
+  if (loading)
+    return (
+      <div
+        className="text-center py-20 min-h-screen flex items-center justify-center"
+        style={{
+          backgroundColor: "var(--bg-color)",
+          color: "var(--text-color)",
+        }}
+      >
+        Loading...
+      </div>
+    );
 
-  // Check if current user can edit/delete
+  if (!post)
+    return (
+      <div
+        className="text-center py-20 min-h-screen flex items-center justify-center"
+        style={{
+          backgroundColor: "var(--bg-color)",
+          color: "var(--text-color)",
+        }}
+      >
+        Post not found
+      </div>
+    );
+
   const canEditOrDelete =
     currUser &&
     (currUser.role === "admin" || currUser._id === post.author?._id);
 
   return (
-    <div className="bg-white">
+    <div
+      style={{ backgroundColor: "var(--bg-color)", color: "var(--text-color)" }}
+    >
       <div className="max-w-[900px] mx-auto px-4 py-16 space-y-10">
         {/* Title */}
         <h1 className="text-4xl font-bold">{post.title}</h1>
@@ -52,34 +76,43 @@ const PostPage = () => {
         {/* Image */}
         {post.image && (
           <img
-            src={post.image}
+            src={
+              post.image?.startsWith("http")
+                ? post.image
+                : `http://localhost:4000${post.image}`
+            }
             alt={post.title}
-            className="w-full h-[420px] object-cover rounded-xl"
+            className="w-full h-[420px] object-cover "
+            style={{ backgroundColor: "var(--card-bg)" }}
           />
         )}
 
-        {/* Edit/Delete buttons - only visible for admin or post author */}
+        {/* Edit/Delete buttons */}
         {canEditOrDelete && (
           <div className="flex gap-4 mt-4">
             <Link
-              className="underline text-purple-700 hover:text-black"
+              className="underline  text-gray-600 italic hover:text-gray-950"
               to={`/edit-post/${post._id}`}
             >
-              Edit
+              <Pencil size={15} strokeWidth={1.5} />
             </Link>
             <Link
-              className="underline text-red-500 hover:text-purple-400"
+              className="underline  text-gray-600 italic hover:text-gray-950"
               to={`/delete-post/${post._id}`}
             >
-              Delete
+              <Eraser size={15} strokeWidth={1.5} />
             </Link>
           </div>
         )}
 
         {/* Content */}
-        <p className="text-lg text-gray-700 leading-relaxed mt-6">
-          {post.body}
-        </p>
+        <div
+          className="post-body prose max-w-none"
+          style={{ color: "var(--text-color)" }}
+          dangerouslySetInnerHTML={{
+            __html: post.htmlBody,
+          }}
+        />
       </div>
     </div>
   );

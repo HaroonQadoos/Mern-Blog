@@ -2,104 +2,102 @@ const User = require("../models/UserModel");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-//Admin Only
-const adminOnly = (req, res, next) => {
-  if (req.user.role !== "admin") {
-    return res.status(403).json({ message: "Admin access only" });
-  }
-  next();
-};
-//users
+// ADMIN
+
 const getUsers = async (req, res) => {
   try {
-    const users = await User.find().select("username email createdAt"); // Only select needed fields
+    const users = await User.find().select(
+      "username email role status createdAt"
+    );
     res.json(users);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Error fetching users" });
   }
 };
 
+// AUTH
+
 const registeredUser = async (req, res) => {
-  const { username, email, password } = req.body;
   try {
+    let { username, email, password } = req.body;
+
+    // Strict field validation
+    if (!username || !username.trim())
+      return res.status(400).json({ message: "Username is required" });
+
+    if (!email || !email.trim())
+      return res.status(400).json({ message: "Email is required" });
+
+    if (!password || !password.trim())
+      return res.status(400).json({ message: "Password is required" });
+
+    email = email.toLowerCase();
+
+    if (password.length < 6)
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 6 characters" });
+
     const userExist = await User.findOne({ email });
-    if (userExist) {
+    if (userExist)
       return res.status(400).json({ message: "User already exists" });
-    }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user with pending status
     const user = await User.create({
       username,
       email,
       password: hashedPassword,
-      status: "pending", // new field
+      status: "pending",
       role: "user",
     });
 
-    // Do NOT generate token yet
-    return res.status(201).json({
+    res.status(201).json({
       message: "Signup request submitted. Waiting for admin approval.",
       user: {
-        _id: user._id,
+        id: user._id,
         username: user.username,
         email: user.email,
         status: user.status,
       },
     });
   } catch (err) {
-    console.log({ message: err.message });
-    return res.status(500).json({ message: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Error registering user" });
   }
 };
 
-///login
 const loginUser = async (req, res) => {
-  const { email, password } = req.body;
-
   try {
-    if (!email || !password) {
-      return res
-        .status(400)
-        .json({ message: "Email and password are required" });
-    }
+    let { email, password } = req.body;
+
+    // Strict validation
+    if (!email || !email.trim())
+      return res.status(400).json({ message: "Email is required" });
+
+    if (!password || !password.trim())
+      return res.status(400).json({ message: "Password is required" });
+
+    email = email.toLowerCase();
 
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Admin bypass
-    if (user.role !== "admin") {
-      if (user.status === "pending") {
-        return res
-          .status(403)
-          .json({ message: "Signup request is pending admin approval" });
-      }
-
-      if (user.status === "rejected") {
-        return res
-          .status(403)
-          .json({ message: "Your signup request was rejected by admin" });
-      }
-
-      if (user.status !== "approved") {
-        return res.status(403).json({ message: "Account not approved" });
-      }
+    if (user.role !== "admin" && user.status !== "approved") {
+      return res
+        .status(403)
+        .json({ message: `Account ${user.status}. Contact admin.` });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
+    if (!isMatch)
       return res.status(401).json({ message: "Invalid credentials" });
-    }
 
-    const token = generateToken(user._id);
+    const token = generateToken(user);
 
-    return res.status(200).json({
-      _id: user._id,
+    res.json({
+      id: user._id,
       username: user.username,
       email: user.email,
       role: user.role,
@@ -107,26 +105,18 @@ const loginUser = async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ message: err.message });
+    res.status(500).json({ message: "Error logging in" });
   }
 };
 
 const logoutUser = async (req, res) => {
-  try {
-    res.cookie("token", "", {
-      httpOnly: true,
-      expires: new Date(0), // expire immediately
-      sameSite: "strict",
-      secure: process.env.NODE_ENV === "production",
-    });
-    return res.status(200).json({ message: "User logged out successfully" });
-  } catch (err) {
-    return res.status(500).json({ message: err.message });
-    console.log({ message: err.message });
-  }
+  res.json({ message: "Logout successful" });
 };
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
+const generateToken = (user) => {
+  return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
+    expiresIn: "30d",
+  });
 };
-module.exports = { getUsers, loginUser, registeredUser, logoutUser };
+
+module.exports = { getUsers, registeredUser, loginUser, logoutUser };

@@ -12,7 +12,9 @@ const {
 const { protect } = require("../middleware/authMiddleware");
 const { adminOnly } = require("../middleware/adminMiddleware");
 const Post = require("../models/post");
+const upload = require("../middleware/uploadMiddleware");
 
+//admin
 router.get("/admin/all", protect, adminOnly, async (req, res) => {
   const posts = await Post.find()
     .populate("author", "username")
@@ -20,14 +22,21 @@ router.get("/admin/all", protect, adminOnly, async (req, res) => {
 
   res.json(posts);
 });
-
-router.get("/my-posts", protect, getMyPosts);
-
-router.get("/", getPosts);
-router.post("/", protect, createPost); //protected
-router.get("/:id", getPostById);
-router.put("/:id", protect, adminOnly, updatePost); //protected
-router.delete("/:id", protect, adminOnly, deletePost); //protected
 router.put("/:id/publish", protect, adminOnly, togglePublishPosts);
+
+//Public
+router.get("/", getPosts);
+router.get("/:id", getPostById);
+//users
+router.post("/upload", upload.single("image"), (req, res) => {
+  if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+  // Send back URL for Quill editor
+  res.json({ url: `http://localhost:4000/uploads/${req.file.filename}` });
+});
+router.get("/my-posts", protect, getMyPosts);
+router.post("/", protect, upload.single("image"), createPost); //protected
+router.put("/:id", protect, updatePost); //protected
+router.delete("/:id", protect, deletePost); //protected
 
 module.exports = router;

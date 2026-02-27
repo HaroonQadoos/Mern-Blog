@@ -10,13 +10,17 @@ const postSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    htmlBody: {
+      type: String, // ✅ QUILL CONTENT WITH IMAGES
+    },
     author: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
     image: {
-      type: String, // store image URL
+      type: String,
+      default: "", // store image URL
       required: false, // optional field
     },
     status: {
@@ -24,6 +28,7 @@ const postSchema = new mongoose.Schema(
       enum: ["draft", "published"],
       default: "draft",
     },
+    tags: [String],
   },
   { timestamps: true }
 );

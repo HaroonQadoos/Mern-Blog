@@ -2,14 +2,11 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/UserModel");
 
 const protect = async (req, res, next) => {
-  let token;
+  let token = req.headers.authorization;
 
   //  Get token from Authorization header
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    token = req.headers.authorization.split(" ")[1];
+  if (token && token.startsWith("Bearer")) {
+    token = token.split(" ")[1];
   }
   // OR get token from cookies
   else if (req.cookies?.token) {
@@ -28,10 +25,13 @@ const protect = async (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ message: "User not found" });
     }
+    if (req.user.isBlocked) {
+      return res.status(403).json({ message: "User is blocked" });
+    }
 
     next();
   } catch (err) {
-    return res.status(401).json({ message: "Invalid token" });
+    return res.status(401).json({ message: "Invalid token", err });
   }
 };
 

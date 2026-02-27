@@ -28,7 +28,9 @@ const approveUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-
+    if (user.status === "approved") {
+      return res.status(400).json({ message: "User is already approved" });
+    }
     user.status = "approved";
     await user.save();
     await transporter.sendMail({
@@ -79,6 +81,18 @@ const rejectUser = async (req, res) => {
     }
 
     await user.save();
+    await transporter.sendMail({
+      from: `"H Blog" <${process.env.EMAIL_USER}>`,
+      to: user.email,
+      subject: "Signup Rejected ",
+      text: `Hello ${user.username},
+
+Congratulations! Your signup request has been rejected.
+You can try agian after some time keep using H Blog.
+
+Regards,
+H Blog Team`,
+    });
 
     res.status(200).json({
       message: `User status updated to ${user.status} successfully`,

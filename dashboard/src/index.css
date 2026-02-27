@@ -1,0 +1,54 @@
+@import "tailwindcss";
+@plugin "daisyui";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-color: #fff;
+  --text-color: #111;
+  --head-color: #f5f5f5;
+  --navy: #1c2541;
+  --navy-card: #8ab4eb;
+  --bg-navy: #f1f5f9;
+  --hover-bg: #000; /* light hover */
+  --hover-text: #fff;
+  --active-bg: #000;
+  --active-text: #fff;
+}
+
+html.dark {
+  --bg-color: #09090b;
+  --text-color: #f5f5f5;
+  --head-color: #f5f5f5;
+  --navy: #1c2541;
+  --navy-card: #8ab4eb;
+  --bg-navy: #f1f5f9;
+  --hover-bg: #fff; /* dark hover */
+  --hover-text: #222;
+  --active-bg: #fff;
+  --active-text: #000;
+}
+/* Navbar button */
+.nav-btn {
+  padding: 0.5rem 1.2rem;
+  border-radius: 2rem; /* rounded-4xl */
+  font-weight: 600;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  border: none;
+  transition: all 0.3s;
+}
+
+/* Hover effect */
+.nav-btn:hover {
+  background-color: var(--hover-bg);
+  color: var(--hover-text);
+}
+
+/* Active effect (you can also use Tailwind's isActive) */
+.nav-btn-active {
+  background-color: var(--active-bg);
+  color: var(--active-text);
+}
+/* Make table responsive */
